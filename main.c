@@ -4,6 +4,14 @@
 #include <ncurses.h>
 
 #define BACKSPACE 127
+#define BUFFER_MAX_SIZE 256
+
+typedef enum State {
+    QUIT,
+    VIEW,
+    CREATE_TITLE,
+    CREATE_DESCRIPTION,
+} State;
 
 typedef struct Task
 {
@@ -14,10 +22,35 @@ typedef struct Task
 
 Task tasks[10] = {0};
 int task_count;
-bool running;
+State state;
 
 void print_task(Task* task) {
     printw("Task:\n\tTitle: %s\n\tDescription: %s\n\tCompleted: %d\n", task->title, task->description, task->completed);
+}
+
+bool prompt(char* buf, int* buf_size) {
+    printw("%s", buf);
+    int input = getch();
+    switch (input)
+    {
+        case BACKSPACE:
+            if (*buf_size > 0) {
+                (*buf_size)--;
+                buf[*buf_size] = 0;
+            }
+            break;
+
+        case '\n':
+            return true;
+        
+        default:
+            if (*buf_size < BUFFER_MAX_SIZE-1) {
+                buf[*buf_size] = input;
+                (*buf_size)++;
+            }
+            break;
+    }
+    return false;
 }
 
 void append_task(Task t) {
@@ -30,80 +63,22 @@ void append_task(Task t) {
 
 }
 
-void create_task() {
-    char buffer[256] = {0};
-    int buf_size = 0;
-    int step = 0;
-    Task t = {0};
-    t.completed = false;
-    char confirmation[256];
-    while (step < 3) {
-        clear();
-        switch(step) {
-            case 0:
-                printw("Title: %s", buffer);
-                break;
-            case 1:
-                printw("Description: %s", buffer);
-                break;
-            case 2:
-                printw("Confirm? (y/n): %s", buffer);
-        }
-        int input = getch();
-        switch (input) {
-            case BACKSPACE:
-                if (buf_size > 0) {
-                    buf_size--;
-                    buffer[buf_size] = 0;
-                }
-                break;
-            
-            case '\n':
-                switch (step) {
-                    case 0:
-                        t.title = strdup(buffer);
-                        break;
-                    case 1:
-                        t.description = strdup(buffer);
-                        break;
-                    case 2:
-                        strncpy(confirmation, buffer, buf_size+1);
-                        break;
-                }
-                memset(buffer, 0, 255);
-                buf_size = 0;
-                step++;
-                break;
-
-            default:
-                if (buf_size < 255) {
-                    buffer[buf_size] = input;
-                    buf_size++;
-                }
-                break;
-        }
-        refresh();
-    }
-    if (strcmp(confirmation, "y") == 0) {
-        append_task(t);
-    }
-}
-
-void process_string(char* buffer) {
+void cmd(char* buffer) {
     if (strcmp(buffer, "exit") == 0) {
-        running = false;
+        state = QUIT;
     }
     if (strcmp(buffer, "create") == 0) {
-        create_task();
+        state = CREATE_TITLE;
     }
 }
 
-
-int main(int argc, char* argv[]) {
-    char buffer[256] = {0};
+int main(void) {
+    char buffer[BUFFER_MAX_SIZE] = {0};
     int buf_size = 0;
+    Task task = {0};
+    bool submitted;
 
-    running = true;
+    state = VIEW;
     initscr();
     raw();
     keypad(stdscr, true);
@@ -113,35 +88,45 @@ int main(int argc, char* argv[]) {
     getmaxyx(stdscr, rows, cols);
     refresh();
     noecho();
-    while (running)
+    while (state != QUIT)
     {
         clear();
-        move(0,0);
-        for(int i = 0; i < task_count; i++) {
-            print_task(&tasks[i]);
-        }
-        move(rows-1, 0);
-        printw("> %s", buffer);
-        int input = getch();
-        switch (input)
-        {
-            case BACKSPACE:
-                if (buf_size > 0) {
-                    buf_size--;
-                    buffer[buf_size] = 0;
+        switch(state) {
+            case VIEW:
+                move(0,0);
+                for(int i = 0; i < task_count; i++) {
+                    print_task(&tasks[i]);
+                }
+                move(rows-1, 0);
+                printw("> ");
+                submitted = prompt(buffer, &buf_size);
+                if (submitted) {
+                    cmd(buffer);
+                    memset(buffer, 0, 256);
+                    buf_size = 0;
                 }
                 break;
-
-            case '\n':
-                process_string(buffer);
-                memset(buffer, 0, 256);
-                buf_size = 0;
+            case CREATE_TITLE:
+                move(0,0);
+                printw("Title: ");
+                submitted = prompt(buffer, &buf_size);
+                if (submitted) {
+                    task.title = strdup(buffer);
+                    memset(buffer, 0, 256);
+                    buf_size = 0;
+                    state = CREATE_DESCRIPTION;
+                }
                 break;
-            
-            default:
-                if (buf_size < 255) {
-                    buffer[buf_size] = input;
-                    buf_size++;
+            case CREATE_DESCRIPTION:
+                move(0,0);
+                printw("Description: ");
+                submitted = prompt(buffer, &buf_size);
+                if (submitted) {
+                    task.description = strdup(buffer);
+                    memset(buffer, 0, 256);
+                    buf_size = 0;
+                    append_task(task);
+                    state = VIEW;
                 }
                 break;
         }
