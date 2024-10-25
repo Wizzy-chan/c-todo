@@ -18,6 +18,7 @@ typedef struct Task
     char* title;
     char* description;
     bool completed;
+    bool expanded;
 } Task; 
 
 Task tasks[10] = {0};
@@ -25,7 +26,15 @@ int task_count;
 State state;
 
 void print_task(Task* task) {
-    printw("Task:\n\tTitle: %s\n\tDescription: %s\n\tCompleted: %d\n", task->title, task->description, task->completed);
+    if (task->completed) {
+        printw("[-] ");
+    } else {
+        printw("[ ] ");
+    }
+    printw("%s\n", task->title);
+    if (task->expanded) {
+        printw("\t%s\n", task->description);
+    }
 }
 
 bool prompt(char* buf, int* buf_size) {
@@ -69,6 +78,20 @@ void cmd(char* buffer) {
     }
     if (strcmp(buffer, "create") == 0) {
         state = CREATE_TITLE;
+    }
+    if (strncmp(buffer, "complete ", 9) == 0) {
+        // TODO: replace atoi with an error checking conversion
+        int index = atoi(buffer+9);
+        if (index < task_count) {
+            tasks[index].completed = true;
+        }
+    }
+    if (strncmp(buffer, "expand ", 7) == 0) {
+        // TODO: replace atoi with an error checking conversion
+        int index = atoi(buffer+7);
+        if (index < task_count) {
+            tasks[index].expanded ^= true;
+        }
     }
 }
 
