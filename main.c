@@ -21,10 +21,11 @@ typedef struct Task
     bool expanded;
 } Task; 
 
-Task tasks[10] = {0};
-int task_count;
-State state;
+Task tasks[10] = {0}; // Global Task array
+int task_count; // Number of tasks in the global array
+State state; // Global state
 
+/* Prints a task to stdscr */
 void print_task(Task* task) {
     if (task->completed) {
         printw("[-] ");
@@ -37,6 +38,7 @@ void print_task(Task* task) {
     }
 }
 
+/* Creates an input prompt for the user, returns true when the input is finished (user presses enter) */
 bool prompt(char* buf, int* buf_size) {
     printw("%s", buf);
     int input = getch();
@@ -62,6 +64,7 @@ bool prompt(char* buf, int* buf_size) {
     return false;
 }
 
+/* Adds a task to the global tasks array */
 void append_task(Task t) {
     if (task_count == 10) {
         printw("Error: Maximum task count reached");
@@ -72,6 +75,7 @@ void append_task(Task t) {
 
 }
 
+/* Handles commands input by the user */
 void cmd(char* buffer) {
     if (strcmp(buffer, "exit") == 0) {
         state = QUIT;
@@ -113,9 +117,9 @@ int main(void) {
     while (state != QUIT)
     {
         clear();
+        move(0,0);
         switch(state) {
-            case VIEW:
-                move(0,0);
+            case VIEW: // Main todo view
                 for(int i = 0; i < task_count; i++) {
                     print_task(&tasks[i]);
                 }
@@ -128,8 +132,7 @@ int main(void) {
                     buf_size = 0;
                 }
                 break;
-            case CREATE_TITLE:
-                move(0,0);
+            case CREATE_TITLE: // Prompt for task title during task creation
                 printw("Title: ");
                 submitted = prompt(buffer, &buf_size);
                 if (submitted) {
@@ -139,8 +142,7 @@ int main(void) {
                     state = CREATE_DESCRIPTION;
                 }
                 break;
-            case CREATE_DESCRIPTION:
-                move(0,0);
+            case CREATE_DESCRIPTION: // Prompt for task description during task creation
                 printw("Description: ");
                 submitted = prompt(buffer, &buf_size);
                 if (submitted) {
