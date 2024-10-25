@@ -1,2 +1,3 @@
 main: main.c
-	gcc main.c -o main -ggdb -lncurses
+	gcc main.c -o main -ggdb -lncurses -Wall
+
