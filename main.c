@@ -107,8 +107,7 @@ int main(void) {
     keypad(stdscr, true);
     cbreak();
 
-    int rows, cols;
-    getmaxyx(stdscr, rows, cols);
+    int rows = getmaxy(stdscr);
     refresh();
     noecho();
     while (state != QUIT)
@@ -151,6 +150,8 @@ int main(void) {
                     append_task(task);
                     state = VIEW;
                 }
+                break;
+            default:
                 break;
         }
         refresh();
