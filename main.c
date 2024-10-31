@@ -5,6 +5,7 @@
 
 #define BACKSPACE 127
 #define BUFFER_MAX_SIZE 256
+#define MAX_TASKS 10
 
 typedef enum State {
     QUIT,
@@ -21,7 +22,7 @@ typedef struct Task
     bool expanded;
 } Task; 
 
-Task tasks[10] = {0}; // Global Task array
+Task tasks[MAX_TASKS] = {0}; // Global Task array
 int task_count; // Number of tasks in the global array
 State state; // Global state
 
@@ -66,7 +67,7 @@ bool prompt(char* buf, int* buf_size) {
 
 /* Adds a task to the global tasks array */
 void append_task(Task t) {
-    if (task_count == 10) {
+    if (task_count == MAX_TASKS) {
         printw("Error: Maximum task count reached");
         return;
     } 
