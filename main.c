@@ -4,14 +4,22 @@
 #include <ncurses.h>
 
 #define BACKSPACE 127
+#define UP_ARROW 259
+#define DOWN_ARROW 258
 #define BUFFER_MAX_SIZE 256
 #define MAX_TASKS 10
+
+typedef enum ColorPair {
+    DEFAULT,
+    HIGHLIGHTED,
+} ColorPair;
 
 typedef enum State {
     QUIT,
     VIEW,
     CREATE_TITLE,
     CREATE_DESCRIPTION,
+    SELECT_TASK,
 } State;
 
 typedef struct Task
@@ -25,6 +33,14 @@ typedef struct Task
 Task tasks[MAX_TASKS] = {0}; // Global Task array
 int task_count; // Number of tasks in the global array
 State state; // Global state
+
+/* Display a message to the user, closes on input and restores to main view state */
+void display(const char* message) {
+    printw("%s", message);
+    getch();
+    state = VIEW;
+    return;
+} 
 
 /* Prints a task to stdscr */
 void print_task(Task* task) {
@@ -81,6 +97,9 @@ void cmd(char* buffer) {
     if (strcmp(buffer, "exit") == 0) {
         state = QUIT;
     }
+    if (strcmp(buffer, "select") == 0) {
+        state = SELECT_TASK;
+    }
     if (strcmp(buffer, "create") == 0) {
         state = CREATE_TITLE;
     }
@@ -105,12 +124,15 @@ int main(void) {
     int buf_size = 0;
     Task task = {0};
     bool submitted;
+    int selected = 0;
 
     state = VIEW;
     initscr();
     raw();
     keypad(stdscr, true);
     cbreak();
+    start_color();
+    init_pair(HIGHLIGHTED, COLOR_BLACK, COLOR_WHITE);
 
     int rows = getmaxy(stdscr);
     refresh();
@@ -154,7 +176,35 @@ int main(void) {
                     state = VIEW;
                 }
                 break;
+            case SELECT_TASK:
+                curs_set(0);
+                for(int i = 0; i < task_count; i++) {
+                    if (i == selected) { attron(COLOR_PAIR(HIGHLIGHTED)); }
+                    print_task(&tasks[i]);
+                    if (i == selected) { attroff(COLOR_PAIR(HIGHLIGHTED)); }
+                }
+                if (selected == task_count) { attron(COLOR_PAIR(HIGHLIGHTED)); }
+                printw("Back");
+                if (selected == task_count) { attroff(COLOR_PAIR(HIGHLIGHTED)); }
+                int input = getch();
+                switch (input) {
+                    case UP_ARROW:
+                        if (selected > 0) { selected--; }
+                        break;
+                    case DOWN_ARROW:
+                        if (selected < task_count) { selected++; }
+                        break;
+                    case '\n':
+                        if (selected == task_count) { state = VIEW; }
+                        else {
+                            tasks[selected].expanded ^= true;
+                        }
+                        break;
+                }
+                curs_set(1);
+                break;
             default:
+                display("ERROR: INVALID STATE REACHED.");
                 break;
         }
         refresh();
