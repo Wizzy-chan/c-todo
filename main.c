@@ -6,6 +6,7 @@
 #define BACKSPACE 127
 #define UP_ARROW 259
 #define DOWN_ARROW 258
+#define RIGHT_ARROW 261
 #define BUFFER_MAX_SIZE 256
 #define MAX_TASKS 10
 
@@ -129,12 +130,6 @@ void cmd(char* buffer) {
         }
         state = VIEW;
     }
-    if (strcmp(buffer, "expand") == 0) {
-        if (selected < task_count) {
-            tasks[selected].expanded ^= true;
-        }
-        state = VIEW;
-    }
     if (strcmp(buffer, "delete") == 0) {
         if (selected < task_count) {
             remove_task(selected);
@@ -184,6 +179,9 @@ int main(void) {
                         break;
                     case DOWN_ARROW:
                         if (selected < task_count) { selected++; }
+                        break;
+                    case RIGHT_ARROW:
+                        if (selected < task_count) { tasks[selected].expanded ^= true; }
                         break;
                     case '\n':
                         state = COMMAND;
