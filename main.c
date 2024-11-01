@@ -18,8 +18,7 @@ typedef enum ColorPair {
 typedef enum State {
     QUIT,
     VIEW,
-    CREATE_TITLE,
-    CREATE_DESCRIPTION,
+    CREATE_TASK,
     COMMAND,
 } State;
 
@@ -70,6 +69,28 @@ void remove_task(int i) {
     task_count--;
 }
 
+void create_task(void) {
+    Task t = {0};
+    WINDOW *win;
+    char title_buf[BUFFER_MAX_SIZE] = {0};
+    char desc_buf[BUFFER_MAX_SIZE] = {0};
+    win = newwin(2, cols, rows-2, 0);
+
+    echo();
+    wprintw(win, "Title: ");
+    wgetnstr(win, title_buf, BUFFER_MAX_SIZE);
+    wprintw(win, "Description: ");
+    wgetnstr(win, desc_buf, BUFFER_MAX_SIZE);
+    noecho();
+
+    t.title = strdup(title_buf);
+    t.description = strdup(desc_buf);
+    t.completed = false;
+    append_task(t);
+
+    delwin(win);
+}
+
 /* Handles commands input by the user */
 void cmd(const char* buffer) {
     if (strcmp(buffer, "complete") == 0) {
@@ -117,7 +138,6 @@ void list_tasks(void) {
 
 int main(void) {
     char buffer[BUFFER_MAX_SIZE] = {0};
-    Task task = {0};
 
     state = VIEW;
     initscr();
@@ -149,29 +169,14 @@ int main(void) {
                         break;
                     case '\n':
                         if (selected < task_count) { state = COMMAND; }
-                        if (selected == task_count) { state = CREATE_TITLE; }
+                        if (selected == task_count) { state = CREATE_TASK; }
                         if (selected == task_count+1) { state = QUIT; }
                         break;
                 }
                 break;
-            case CREATE_TITLE: // Prompt for task title during task creation
-                printw("Title: ");
-                echo();
-                getnstr(buffer, BUFFER_MAX_SIZE);
-                task.title = strdup(buffer);
-                memset(buffer, 0, BUFFER_MAX_SIZE);
-                state = CREATE_DESCRIPTION;
-                noecho();
-                break;
-            case CREATE_DESCRIPTION: // Prompt for task description during task creation
-                printw("Description: ");
-                echo();
-                getnstr(buffer, BUFFER_MAX_SIZE);
-                task.description = strdup(buffer);
-                memset(buffer, 0, BUFFER_MAX_SIZE);
-                append_task(task);
+            case CREATE_TASK: // Prompt for task title during task creation
+                create_task();
                 state = VIEW;
-                noecho();
                 break;
             case COMMAND:
                 move(0, 0);
