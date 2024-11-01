@@ -58,8 +58,12 @@ void print_task(Task* task, ColorPair title_color, ColorPair desc_color) {
     print_color(task->title, title_color);
     printw("\n");
     if (task->expanded) {
+        char* description = task->description;
+        if (strcmp(description, "") == 0) {
+            description = "[No description]";
+        }
         print_color("\t", desc_color);
-        print_color(task->description, desc_color);
+        print_color(description, desc_color);
         print_color("\n", desc_color);
     }
 }
