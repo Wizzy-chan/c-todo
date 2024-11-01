@@ -128,9 +128,11 @@ void list_tasks(size_t rows, size_t cols) {
         }
         strcat(title_buf, "\n");
         print_color(title_buf, title_color);
-        printw("\t");
-        print_color(t->description, DEFAULT);
-        printw("\n");
+        if (i == selected) {
+            printw("\t");
+            print_color(t->description, DEFAULT);
+            printw("\n");
+        }
     }
     free(title_buf);
     move(rows-2, 0);
