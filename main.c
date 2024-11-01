@@ -19,7 +19,7 @@ typedef enum State {
     VIEW,
     CREATE_TITLE,
     CREATE_DESCRIPTION,
-    SELECT_TASK,
+    COMMAND,
 } State;
 
 typedef struct Task
@@ -33,13 +33,13 @@ typedef struct Task
 Task tasks[MAX_TASKS] = {0}; // Global Task array
 int task_count; // Number of tasks in the global array
 State state; // Global state
+int selected = 0; // Selected task
 
 /* Display a message to the user, closes on input and restores to main view state */
 void display(const char* message) {
     printw("%s", message);
     getch();
     state = VIEW;
-    return;
 } 
 
 void print_color(const char* string, ColorPair color) {
@@ -106,26 +106,27 @@ void cmd(char* buffer) {
     if (strcmp(buffer, "exit") == 0) {
         state = QUIT;
     }
-    if (strcmp(buffer, "select") == 0) {
-        state = SELECT_TASK;
-    }
     if (strcmp(buffer, "create") == 0) {
         state = CREATE_TITLE;
     }
-    if (strncmp(buffer, "complete ", 9) == 0) {
-        // TODO: replace atoi with an error checking conversion
-        int index = atoi(buffer+9);
-        if (index < task_count) {
-            tasks[index].completed = true;
+    if (strcmp(buffer, "complete") == 0) {
+        if (selected < task_count) {
+            tasks[selected].completed = true;
         }
     }
-    if (strncmp(buffer, "expand ", 7) == 0) {
-        // TODO: replace atoi with an error checking conversion
-        int index = atoi(buffer+7);
-        if (index < task_count) {
-            tasks[index].expanded ^= true;
+    if (strcmp(buffer, "expand") == 0) {
+        if (selected < task_count) {
+            tasks[selected].expanded ^= true;
         }
     }
+}
+
+void list_tasks(void) {
+    for(int i = 0; i < task_count; i++) {
+        ColorPair title_color = (i == selected ? HIGHLIGHTED : DEFAULT);
+        print_task(&tasks[i], title_color, DEFAULT);
+    }
+    print_color("+", (selected == task_count ? HIGHLIGHTED : DEFAULT));
 }
 
 int main(void) {
@@ -133,7 +134,6 @@ int main(void) {
     int buf_size = 0;
     Task task = {0};
     bool submitted;
-    int selected = 0;
 
     state = VIEW;
     initscr();
@@ -151,17 +151,21 @@ int main(void) {
         clear();
         move(0,0);
         switch(state) {
-            case VIEW: // Main todo view
-                for(int i = 0; i < task_count; i++) {
-                    print_task(&tasks[i], DEFAULT, DEFAULT);
-                }
-                move(rows-1, 0);
-                printw("> ");
-                submitted = prompt(buffer, &buf_size);
-                if (submitted) {
-                    cmd(buffer);
-                    memset(buffer, 0, 256);
-                    buf_size = 0;
+            case VIEW:
+                curs_set(0);
+                list_tasks();
+                int input = getch();
+                curs_set(1);
+                switch (input) {
+                    case UP_ARROW:
+                        if (selected > 0) { selected--; }
+                        break;
+                    case DOWN_ARROW:
+                        if (selected < task_count) { selected++; }
+                        break;
+                    case '\n':
+                        state = COMMAND;
+                        break;
                 }
                 break;
             case CREATE_TITLE: // Prompt for task title during task creation
@@ -185,29 +189,17 @@ int main(void) {
                     state = VIEW;
                 }
                 break;
-            case SELECT_TASK:
-                curs_set(0);
-                for(int i = 0; i < task_count; i++) {
-                    ColorPair title_color = (i == selected ? HIGHLIGHTED : DEFAULT);
-                    print_task(&tasks[i], title_color, DEFAULT);
+            case COMMAND:
+                move(0, 0);
+                list_tasks();
+                move(rows-1, 0);
+                printw("> ");
+                submitted = prompt(buffer, &buf_size);
+                if (submitted) {
+                    cmd(buffer);
+                    memset(buffer, 0, 256);
+                    buf_size = 0;
                 }
-                print_color("Back", (selected == task_count ? HIGHLIGHTED : DEFAULT));
-                int input = getch();
-                switch (input) {
-                    case UP_ARROW:
-                        if (selected > 0) { selected--; }
-                        break;
-                    case DOWN_ARROW:
-                        if (selected < task_count) { selected++; }
-                        break;
-                    case '\n':
-                        if (selected == task_count) { state = VIEW; }
-                        else {
-                            tasks[selected].expanded ^= true;
-                        }
-                        break;
-                }
-                curs_set(1);
                 break;
             default:
                 display("ERROR: INVALID STATE REACHED.");
