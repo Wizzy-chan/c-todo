@@ -117,33 +117,27 @@ void remove_task(int i) {
 }
 
 /* Handles commands input by the user */
-void cmd(char* buffer) {
-    if (strcmp(buffer, "exit") == 0) {
-        state = QUIT;
-    }
-    if (strcmp(buffer, "create") == 0) {
-        state = CREATE_TITLE;
-    }
+void cmd(const char* buffer) {
     if (strcmp(buffer, "complete") == 0) {
         if (selected < task_count) {
             tasks[selected].completed = true;
         }
-        state = VIEW;
     }
     if (strcmp(buffer, "delete") == 0) {
         if (selected < task_count) {
             remove_task(selected);
         }
-        state = VIEW;
     }
 }
 
-void list_tasks(void) {
+void list_tasks(int rows, int cols) {
     for(int i = 0; i < task_count; i++) {
         ColorPair title_color = (i == selected ? HIGHLIGHTED : DEFAULT);
         print_task(&tasks[i], title_color, DEFAULT);
     }
-    print_color("+", (selected == task_count ? HIGHLIGHTED : DEFAULT));
+    move(rows-2, 0);
+    print_color("[+] New\n", (selected == task_count ? HIGHLIGHTED : DEFAULT));
+    print_color("[<] Quit\n", (selected == task_count + 1 ? HIGHLIGHTED : DEFAULT));
 }
 
 int main(void) {
@@ -160,17 +154,18 @@ int main(void) {
     start_color();
     init_pair(HIGHLIGHTED, COLOR_BLACK, COLOR_WHITE);
 
-    int rows = getmaxy(stdscr);
+    int rows, cols;
     refresh();
     noecho();
     while (state != QUIT)
     {
         clear();
         move(0,0);
+        getmaxyx(stdscr, rows, cols);
         switch(state) {
             case VIEW:
                 curs_set(0);
-                list_tasks();
+                list_tasks(rows, cols);
                 int input = getch();
                 curs_set(1);
                 switch (input) {
@@ -178,13 +173,15 @@ int main(void) {
                         if (selected > 0) { selected--; }
                         break;
                     case DOWN_ARROW:
-                        if (selected < task_count) { selected++; }
+                        if (selected < task_count + 1) { selected++; }
                         break;
                     case RIGHT_ARROW:
                         if (selected < task_count) { tasks[selected].expanded ^= true; }
                         break;
                     case '\n':
-                        state = COMMAND;
+                        if (selected < task_count) { state = COMMAND; }
+                        if (selected == task_count) { state = CREATE_TITLE; }
+                        if (selected == task_count+1) { state = QUIT; }
                         break;
                 }
                 break;
@@ -211,7 +208,7 @@ int main(void) {
                 break;
             case COMMAND:
                 move(0, 0);
-                list_tasks();
+                list_tasks(rows, cols);
                 move(rows-1, 0);
                 printw("> ");
                 submitted = prompt(buffer, &buf_size);
@@ -219,6 +216,7 @@ int main(void) {
                     cmd(buffer);
                     memset(buffer, 0, 256);
                     buf_size = 0;
+                    state = VIEW;
                 }
                 break;
             default:
