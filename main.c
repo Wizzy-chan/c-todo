@@ -117,11 +117,13 @@ void cmd(char* buffer) {
         if (selected < task_count) {
             tasks[selected].completed = true;
         }
+        state = VIEW;
     }
     if (strcmp(buffer, "expand") == 0) {
         if (selected < task_count) {
             tasks[selected].expanded ^= true;
         }
+        state = VIEW;
     }
 }
 
