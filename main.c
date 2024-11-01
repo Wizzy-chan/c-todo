@@ -81,7 +81,7 @@ bool prompt(char* buf, int* buf_size) {
             return true;
         
         default:
-            if (*buf_size < BUFFER_MAX_SIZE-1) {
+            if (*buf_size < BUFFER_MAX_SIZE-1 && input < 256) {
                 buf[*buf_size] = input;
                 (*buf_size)++;
             }
