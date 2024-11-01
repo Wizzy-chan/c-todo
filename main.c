@@ -102,7 +102,17 @@ void append_task(Task t) {
     } 
     tasks[task_count] = t;
     task_count++;
+}
 
+/* Removes a task from the global tasks array */
+void remove_task(int i) {
+    Task* t = &tasks[i];
+    free(t->title);
+    free(t->description);
+    for(int j = i; j < MAX_TASKS; j++) {
+        tasks[j] = tasks[j+1];
+    }
+    task_count--;
 }
 
 /* Handles commands input by the user */
@@ -122,6 +132,12 @@ void cmd(char* buffer) {
     if (strcmp(buffer, "expand") == 0) {
         if (selected < task_count) {
             tasks[selected].expanded ^= true;
+        }
+        state = VIEW;
+    }
+    if (strcmp(buffer, "delete") == 0) {
+        if (selected < task_count) {
+            remove_task(selected);
         }
         state = VIEW;
     }
