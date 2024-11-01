@@ -28,7 +28,6 @@ typedef struct Task
     char* title;
     char* description;
     bool completed;
-    bool expanded;
 } Task; 
 
 Task tasks[MAX_TASKS] = {0}; // Global Task array
@@ -47,26 +46,6 @@ void print_color(const char* string, ColorPair color) {
     attron(COLOR_PAIR(color));
     printw("%s", string);
     attroff(COLOR_PAIR(color));
-}
-
-/* Prints a task to stdscr */
-void print_task(Task* task, ColorPair title_color, ColorPair desc_color) {
-    if (task->completed) {
-        print_color("[-] ", title_color);
-    } else {
-        print_color("[ ] ", title_color);
-    }
-    print_color(task->title, title_color);
-    printw("\n");
-    if (task->expanded) {
-        char* description = task->description;
-        if (strcmp(description, "") == 0) {
-            description = "[No description]";
-        }
-        print_color("\t", desc_color);
-        print_color(description, desc_color);
-        print_color("\n", desc_color);
-    }
 }
 
 /* Creates an input prompt for the user, returns true when the input is finished (user presses enter) */
@@ -133,7 +112,18 @@ void cmd(const char* buffer) {
 void list_tasks(int rows, int cols) {
     for(int i = 0; i < task_count; i++) {
         ColorPair title_color = (i == selected ? HIGHLIGHTED : DEFAULT);
-        print_task(&tasks[i], title_color, DEFAULT);
+        if (tasks[i].completed) {
+            print_color("[=] ", title_color);
+        } else {
+            print_color("[ ] ", title_color);
+        }
+        print_color(tasks[i].title, title_color);
+        printw("\n");
+        if (i == selected) {
+            printw("\t");
+            print_color(tasks[i].description, DEFAULT);
+            printw("\n");
+        }
     }
     move(rows-2, 0);
     print_color("[+] New\n", (selected == task_count ? HIGHLIGHTED : DEFAULT));
@@ -174,9 +164,6 @@ int main(void) {
                         break;
                     case DOWN_ARROW:
                         if (selected < task_count + 1) { selected++; }
-                        break;
-                    case RIGHT_ARROW:
-                        if (selected < task_count) { tasks[selected].expanded ^= true; }
                         break;
                     case '\n':
                         if (selected < task_count) { state = COMMAND; }
