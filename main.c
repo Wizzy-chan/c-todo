@@ -78,9 +78,9 @@ void create_task(void) {
 
     echo();
     wprintw(win, "Title: ");
-    wgetnstr(win, title_buf, BUFFER_MAX_SIZE);
+    wgetnstr(win, title_buf, BUFFER_MAX_SIZE-1);
     wprintw(win, "Description: ");
-    wgetnstr(win, desc_buf, BUFFER_MAX_SIZE);
+    wgetnstr(win, desc_buf, BUFFER_MAX_SIZE-1);
     noecho();
 
     t.title = strdup(title_buf);
@@ -92,13 +92,25 @@ void create_task(void) {
 }
 
 /* Handles commands input by the user */
-void cmd(const char* buffer) {
-    if (strcmp(buffer, "complete") == 0) {
+void cmd(void) {
+    char buf[BUFFER_MAX_SIZE] = {0};
+    WINDOW *win;
+
+    win = newwin(1, cols, rows-1, 0);
+
+    echo();
+    wprintw(win, "> ");
+    wgetnstr(win, buf, BUFFER_MAX_SIZE-1);
+    noecho();
+
+    delwin(win);
+
+    if (strcmp(buf, "complete") == 0) {
         if (selected < task_count) {
             tasks[selected].completed = true;
         }
     }
-    if (strcmp(buffer, "delete") == 0) {
+    if (strcmp(buf, "delete") == 0) {
         if (selected < task_count) {
             remove_task(selected);
         }
@@ -137,8 +149,6 @@ void list_tasks(void) {
 }
 
 int main(void) {
-    char buffer[BUFFER_MAX_SIZE] = {0};
-
     state = VIEW;
     initscr();
     raw();
@@ -179,16 +189,8 @@ int main(void) {
                 state = VIEW;
                 break;
             case COMMAND:
-                move(0, 0);
-                list_tasks();
-                move(rows-1, 0);
-                printw("> ");
-                echo();
-                getnstr(buffer, BUFFER_MAX_SIZE);
-                cmd(buffer);
-                memset(buffer, 0, BUFFER_MAX_SIZE);
+                cmd();
                 state = VIEW;
-                noecho();
                 break;
             default:
                 display("ERROR: INVALID STATE REACHED.");
