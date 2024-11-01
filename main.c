@@ -34,6 +34,7 @@ Task tasks[MAX_TASKS] = {0}; // Global Task array
 int task_count; // Number of tasks in the global array
 State state; // Global state
 int selected = 0; // Selected task
+size_t rows, cols; // Size of the terminal
 
 /* Display a message to the user, closes on input and restores to main view state */
 void display(const char* message) {
@@ -46,32 +47,6 @@ void print_color(const char* string, ColorPair color) {
     attron(COLOR_PAIR(color));
     printw("%s", string);
     attroff(COLOR_PAIR(color));
-}
-
-/* Creates an input prompt for the user, returns true when the input is finished (user presses enter) */
-bool prompt(char* buf, int* buf_size) {
-    printw("%s", buf);
-    int input = getch();
-    switch (input)
-    {
-        case BACKSPACE:
-            if (*buf_size > 0) {
-                (*buf_size)--;
-                buf[*buf_size] = 0;
-            }
-            break;
-
-        case '\n':
-            return true;
-        
-        default:
-            if (*buf_size < BUFFER_MAX_SIZE-1 && input < 256) {
-                buf[*buf_size] = input;
-                (*buf_size)++;
-            }
-            break;
-    }
-    return false;
 }
 
 /* Adds a task to the global tasks array */
@@ -109,7 +84,7 @@ void cmd(const char* buffer) {
     }
 }
 
-void list_tasks(size_t rows, size_t cols) {
+void list_tasks(void) {
     char* title_buf = malloc(cols+2);
     for(int i = 0; i < task_count; i++) {
         Task* t = &tasks[i];
@@ -120,8 +95,8 @@ void list_tasks(size_t rows, size_t cols) {
         } else {
             strcat(title_buf, "[ ] ");
         }
-        if (strlen(t->title) > cols-4) {
-            strncat(title_buf, t->title, cols-7);
+        if (strlen(t->title) > cols-5) {
+            strncat(title_buf, t->title, cols-8);
             strcat(title_buf, "...");
         } else {
             strcat(title_buf, t->title);
@@ -132,7 +107,7 @@ void list_tasks(size_t rows, size_t cols) {
             printw("\t");
             print_color(t->description, DEFAULT);
             printw("\n");
-        }
+        }                                   
     }
     free(title_buf);
     move(rows-2, 0);
@@ -142,9 +117,7 @@ void list_tasks(size_t rows, size_t cols) {
 
 int main(void) {
     char buffer[BUFFER_MAX_SIZE] = {0};
-    int buf_size = 0;
     Task task = {0};
-    bool submitted;
 
     state = VIEW;
     initscr();
@@ -154,7 +127,6 @@ int main(void) {
     start_color();
     init_pair(HIGHLIGHTED, COLOR_BLACK, COLOR_WHITE);
 
-    size_t rows, cols;
     refresh();
     noecho();
     while (state != QUIT)
@@ -165,7 +137,7 @@ int main(void) {
         switch(state) {
             case VIEW:
                 curs_set(0);
-                list_tasks(rows, cols);
+                list_tasks();
                 int input = getch();
                 curs_set(1);
                 switch (input) {
@@ -184,37 +156,34 @@ int main(void) {
                 break;
             case CREATE_TITLE: // Prompt for task title during task creation
                 printw("Title: ");
-                submitted = prompt(buffer, &buf_size);
-                if (submitted) {
-                    task.title = strdup(buffer);
-                    memset(buffer, 0, 256);
-                    buf_size = 0;
-                    state = CREATE_DESCRIPTION;
-                }
+                echo();
+                getnstr(buffer, BUFFER_MAX_SIZE);
+                task.title = strdup(buffer);
+                memset(buffer, 0, BUFFER_MAX_SIZE);
+                state = CREATE_DESCRIPTION;
+                noecho();
                 break;
             case CREATE_DESCRIPTION: // Prompt for task description during task creation
                 printw("Description: ");
-                submitted = prompt(buffer, &buf_size);
-                if (submitted) {
-                    task.description = strdup(buffer);
-                    memset(buffer, 0, 256);
-                    buf_size = 0;
-                    append_task(task);
-                    state = VIEW;
-                }
+                echo();
+                getnstr(buffer, BUFFER_MAX_SIZE);
+                task.description = strdup(buffer);
+                memset(buffer, 0, BUFFER_MAX_SIZE);
+                append_task(task);
+                state = VIEW;
+                noecho();
                 break;
             case COMMAND:
                 move(0, 0);
-                list_tasks(rows, cols);
+                list_tasks();
                 move(rows-1, 0);
                 printw("> ");
-                submitted = prompt(buffer, &buf_size);
-                if (submitted) {
-                    cmd(buffer);
-                    memset(buffer, 0, 256);
-                    buf_size = 0;
-                    state = VIEW;
-                }
+                echo();
+                getnstr(buffer, BUFFER_MAX_SIZE);
+                cmd(buffer);
+                memset(buffer, 0, BUFFER_MAX_SIZE);
+                state = VIEW;
+                noecho();
                 break;
             default:
                 display("ERROR: INVALID STATE REACHED.");
