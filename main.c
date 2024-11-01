@@ -109,22 +109,30 @@ void cmd(const char* buffer) {
     }
 }
 
-void list_tasks(int rows, int cols) {
+void list_tasks(size_t rows, size_t cols) {
+    char* title_buf = malloc(cols+2);
     for(int i = 0; i < task_count; i++) {
+        Task* t = &tasks[i];
         ColorPair title_color = (i == selected ? HIGHLIGHTED : DEFAULT);
-        if (tasks[i].completed) {
-            print_color("[=] ", title_color);
+        memset(title_buf, 0, cols+2);
+        if (t->completed) {
+            strcat(title_buf, "[=] ");
         } else {
-            print_color("[ ] ", title_color);
+            strcat(title_buf, "[ ] ");
         }
-        print_color(tasks[i].title, title_color);
+        if (strlen(t->title) > cols-4) {
+            strncat(title_buf, t->title, cols-7);
+            strcat(title_buf, "...");
+        } else {
+            strcat(title_buf, t->title);
+        }
+        strcat(title_buf, "\n");
+        print_color(title_buf, title_color);
+        printw("\t");
+        print_color(t->description, DEFAULT);
         printw("\n");
-        if (i == selected) {
-            printw("\t");
-            print_color(tasks[i].description, DEFAULT);
-            printw("\n");
-        }
     }
+    free(title_buf);
     move(rows-2, 0);
     print_color("[+] New\n", (selected == task_count ? HIGHLIGHTED : DEFAULT));
     print_color("[<] Quit\n", (selected == task_count + 1 ? HIGHLIGHTED : DEFAULT));
@@ -144,7 +152,7 @@ int main(void) {
     start_color();
     init_pair(HIGHLIGHTED, COLOR_BLACK, COLOR_WHITE);
 
-    int rows, cols;
+    size_t rows, cols;
     refresh();
     noecho();
     while (state != QUIT)
