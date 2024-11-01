@@ -42,16 +42,25 @@ void display(const char* message) {
     return;
 } 
 
+void print_color(const char* string, ColorPair color) {
+    attron(COLOR_PAIR(color));
+    printw("%s", string);
+    attroff(COLOR_PAIR(color));
+}
+
 /* Prints a task to stdscr */
-void print_task(Task* task) {
+void print_task(Task* task, ColorPair title_color, ColorPair desc_color) {
     if (task->completed) {
-        printw("[-] ");
+        print_color("[-] ", title_color);
     } else {
-        printw("[ ] ");
+        print_color("[ ] ", title_color);
     }
-    printw("%s\n", task->title);
+    print_color(task->title, title_color);
+    printw("\n");
     if (task->expanded) {
-        printw("\t%s\n", task->description);
+        print_color("\t", desc_color);
+        print_color(task->description, desc_color);
+        print_color("\n", desc_color);
     }
 }
 
@@ -144,7 +153,7 @@ int main(void) {
         switch(state) {
             case VIEW: // Main todo view
                 for(int i = 0; i < task_count; i++) {
-                    print_task(&tasks[i]);
+                    print_task(&tasks[i], DEFAULT, DEFAULT);
                 }
                 move(rows-1, 0);
                 printw("> ");
@@ -179,13 +188,10 @@ int main(void) {
             case SELECT_TASK:
                 curs_set(0);
                 for(int i = 0; i < task_count; i++) {
-                    if (i == selected) { attron(COLOR_PAIR(HIGHLIGHTED)); }
-                    print_task(&tasks[i]);
-                    if (i == selected) { attroff(COLOR_PAIR(HIGHLIGHTED)); }
+                    ColorPair title_color = (i == selected ? HIGHLIGHTED : DEFAULT);
+                    print_task(&tasks[i], title_color, DEFAULT);
                 }
-                if (selected == task_count) { attron(COLOR_PAIR(HIGHLIGHTED)); }
-                printw("Back");
-                if (selected == task_count) { attroff(COLOR_PAIR(HIGHLIGHTED)); }
+                print_color("Back", (selected == task_count ? HIGHLIGHTED : DEFAULT));
                 int input = getch();
                 switch (input) {
                     case UP_ARROW:
