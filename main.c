@@ -103,14 +103,10 @@ void cmd(void) {
     delwin(win);
 
     if (strcmp(buf, "complete") == 0) {
-        if (selected < task_count) {
-            tasks[selected].completed = true;
-        }
+        tasks[selected].completed = true;
     }
     if (strcmp(buf, "delete") == 0) {
-        if (selected < task_count) {
-            remove_task(selected);
-        }
+        remove_task(selected);
     }
 }
 
@@ -120,7 +116,7 @@ void list_tasks(void) {
     for(int i = 0; i < task_count; i++) {
         Task* t = &tasks[i];
         Color title_color;
-        if (selected == i){ 
+        if (selected == i) { 
             title_color = HIGHLIGHTED;
         } else {
             title_color = DEFAULT;
@@ -195,6 +191,12 @@ int main(void) {
                             state = QUIT;
                         }
                         break;
+                    case 'C':
+                        if (selected < task_count) {
+                            tasks[selected].completed = true;
+                        }
+                        break;
+
                 }
                 break;
             default:
