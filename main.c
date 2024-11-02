@@ -3,23 +3,19 @@
 #include <string.h>
 #include <ncurses.h>
 
-#define BACKSPACE 127
 #define UP_ARROW 259
 #define DOWN_ARROW 258
-#define RIGHT_ARROW 261
 #define BUFFER_MAX_SIZE 256
 #define MAX_TASKS 10
 
-typedef enum ColorPair {
+typedef enum Color {
     DEFAULT,
     HIGHLIGHTED,
-} ColorPair;
+} Color;
 
 typedef enum State {
     QUIT,
     VIEW,
-    CREATE_TASK,
-    COMMAND,
 } State;
 
 typedef struct Task
@@ -35,16 +31,16 @@ State state; // Global state
 int selected = 0; // Selected task
 size_t rows, cols; // Size of the terminal
 
-/* Display a message to the user, closes on input and restores to main view state */
+/* Display a message to the user, closes on input */
 void display(const char* message) {
     printw("%s", message);
     getch();
-    state = VIEW;
 } 
 
-void print_color(const char* string, ColorPair color) {
+/* Prints a string to the screen as the provided color */
+void print_color(const char* string, Color color) {
     attron(COLOR_PAIR(color));
-    printw("%s", string);
+        printw("%s", string);
     attroff(COLOR_PAIR(color));
 }
 
@@ -69,6 +65,7 @@ void remove_task(int i) {
     task_count--;
 }
 
+/* Creates a window to prompt for the title and description of a new task */
 void create_task(void) {
     Task t = {0};
     WINDOW *win;
@@ -77,10 +74,10 @@ void create_task(void) {
     win = newwin(2, cols, rows-2, 0);
 
     echo();
-    wprintw(win, "Title: ");
-    wgetnstr(win, title_buf, BUFFER_MAX_SIZE-1);
-    wprintw(win, "Description: ");
-    wgetnstr(win, desc_buf, BUFFER_MAX_SIZE-1);
+        wprintw(win, "Title: ");
+        wgetnstr(win, title_buf, BUFFER_MAX_SIZE-1);
+        wprintw(win, "Description: ");
+        wgetnstr(win, desc_buf, BUFFER_MAX_SIZE-1);
     noecho();
 
     t.title = strdup(title_buf);
@@ -99,8 +96,8 @@ void cmd(void) {
     win = newwin(1, cols, rows-1, 0);
 
     echo();
-    wprintw(win, "> ");
-    wgetnstr(win, buf, BUFFER_MAX_SIZE-1);
+        wprintw(win, "> ");
+        wgetnstr(win, buf, BUFFER_MAX_SIZE-1);
     noecho();
 
     delwin(win);
@@ -117,11 +114,17 @@ void cmd(void) {
     }
 }
 
+/* Lists all the tasks, as well as a few options; highlights the selected option */
 void list_tasks(void) {
     char* title_buf = malloc(cols+2);
     for(int i = 0; i < task_count; i++) {
         Task* t = &tasks[i];
-        ColorPair title_color = (i == selected ? HIGHLIGHTED : DEFAULT);
+        Color title_color;
+        if (selected == i){ 
+            title_color = HIGHLIGHTED;
+        } else {
+            title_color = DEFAULT;
+        }
         memset(title_buf, 0, cols+2);
         if (t->completed) {
             strcat(title_buf, "[=] ");
@@ -172,25 +175,27 @@ int main(void) {
                 curs_set(1);
                 switch (input) {
                     case UP_ARROW:
-                        if (selected > 0) { selected--; }
+                        if (selected > 0) {
+                            selected--;
+                        }
                         break;
                     case DOWN_ARROW:
-                        if (selected < task_count + 1) { selected++; }
+                        if (selected < task_count + 1) {
+                            selected++;
+                        }
                         break;
                     case '\n':
-                        if (selected < task_count) { state = COMMAND; }
-                        if (selected == task_count) { state = CREATE_TASK; }
-                        if (selected == task_count+1) { state = QUIT; }
+                        if (selected < task_count) {
+                            cmd();
+                        }
+                        else if (selected == task_count) {
+                            create_task();
+                        }
+                        else if (selected == task_count+1) {
+                            state = QUIT;
+                        }
                         break;
                 }
-                break;
-            case CREATE_TASK: // Prompt for task title during task creation
-                create_task();
-                state = VIEW;
-                break;
-            case COMMAND:
-                cmd();
-                state = VIEW;
                 break;
             default:
                 display("ERROR: INVALID STATE REACHED.");
