@@ -105,6 +105,9 @@ void cmd(void) {
     if (strcmp(buf, "complete") == 0) {
         tasks[selected].completed = true;
     }
+    if (strcmp(buf, "uncomplete") == 0) {
+        tasks[selected].completed = false;
+    }
     if (strcmp(buf, "delete") == 0) {
         remove_task(selected);
     }
