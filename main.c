@@ -30,10 +30,9 @@ typedef struct Tasks {
     int size;
 } Tasks;
 
-Tasks tasks = {0};
-State state; // Global state
-int selected = 0; // Selected task
-size_t rows, cols; // Size of the terminal
+typedef struct Term {
+    size_t rows, cols;
+} Term;
 
 /* Display a message to the user, closes on input */
 void display(const char* message) {
@@ -49,35 +48,35 @@ void print_color(const char* string, Color color) {
 }
 
 /* Adds a task to the global tasks array */
-void append_task(Task t) {
-    if (tasks.count == tasks.size) {
-        if (tasks.size == 0) {
-            tasks.size = MIN_ARRAY_SIZE;
+void append_task(Tasks *tasks, Task t) {
+    if (tasks->count == tasks->size) {
+        if (tasks->size == 0) {
+            tasks->size = MIN_ARRAY_SIZE;
         } else {
-            tasks.size *= 2;
+            tasks->size *= 2;
         }
-        tasks.items = realloc(tasks.items, tasks.size * sizeof(Task));
+        tasks->items = realloc(tasks->items, tasks->size * sizeof(Task));
     } 
-    tasks.items[tasks.count] = t;
-    tasks.count++;
+    tasks->items[tasks->count] = t;
+    tasks->count++;
 }
 
 /* Removes a task from the global tasks array */
-void remove_task(int i) {
-    Task* t = &tasks.items[i];
+void remove_task(Tasks *tasks, int i) {
+    Task* t = &tasks->items[i];
     free(t->title);
     free(t->description);
-    memmove(&tasks.items[i], &tasks.items[i+1], (tasks.count - i - 1) * sizeof(Task));
-    tasks.count--;
+    memmove(&tasks->items[i], &tasks->items[i+1], (tasks->count - i - 1) * sizeof(Task));
+    tasks->count--;
 }
 
 /* Creates a window to prompt for the title and description of a new task */
-void create_task(void) {
+void create_task(Tasks *tasks, Term *term) {
     Task t = {0};
     WINDOW *win;
     char title_buf[BUFFER_MAX_SIZE] = {0};
     char desc_buf[BUFFER_MAX_SIZE] = {0};
-    win = newwin(2, cols, rows-2, 0);
+    win = newwin(2, term->cols, term->rows-2, 0);
 
     echo();
         wprintw(win, "Title: ");
@@ -89,17 +88,17 @@ void create_task(void) {
     t.title = strdup(title_buf);
     t.description = strdup(desc_buf);
     t.completed = false;
-    append_task(t);
+    append_task(tasks, t);
 
     delwin(win);
 }
 
 /* Handles commands input by the user */
-void cmd(void) {
+void cmd(Tasks *tasks, int selected, Term *term) {
     char buf[BUFFER_MAX_SIZE] = {0};
     WINDOW *win;
 
-    win = newwin(1, cols, rows-1, 0);
+    win = newwin(1, term->cols, term->rows-1, 0);
 
     echo();
         wprintw(win, "> ");
@@ -109,35 +108,35 @@ void cmd(void) {
     delwin(win);
 
     if (strcmp(buf, "complete") == 0) {
-        tasks.items[selected].completed = true;
+        tasks->items[selected].completed = true;
     }
     if (strcmp(buf, "uncomplete") == 0) {
-        tasks.items[selected].completed = false;
+        tasks->items[selected].completed = false;
     }
     if (strcmp(buf, "delete") == 0) {
-        remove_task(selected);
+        remove_task(tasks, selected);
     }
 }
 
 /* Lists all the tasks, as well as a few options; highlights the selected option */
-void list_tasks(void) {
-    char* title_buf = malloc(cols+2);
-    for(int i = 0; i < tasks.count; i++) {
-        Task* t = &tasks.items[i];
+void list_tasks(Tasks *tasks, int selected, WINDOW *win, Term *term) {
+    char* title_buf = malloc(term->cols+2);
+    for(int i = 0; i < tasks->count; i++) {
+        Task* t = &tasks->items[i];
         Color title_color;
         if (selected == i) { 
             title_color = HIGHLIGHTED;
         } else {
             title_color = DEFAULT;
         }
-        memset(title_buf, 0, cols+2);
+        memset(title_buf, 0, win->_maxy+2);
         if (t->completed) {
             strcat(title_buf, "[=] ");
         } else {
             strcat(title_buf, "[ ] ");
         }
-        if (strlen(t->title) > cols-5) {
-            strncat(title_buf, t->title, cols-8);
+        if (strlen(t->title) > term->cols-5) {
+            strncat(title_buf, t->title, term->cols-8);
             strcat(title_buf, "...");
         } else {
             strcat(title_buf, t->title);
@@ -151,13 +150,16 @@ void list_tasks(void) {
         }                                   
     }
     free(title_buf);
-    move(rows-2, 0);
-    print_color("[+] New\n", (selected == tasks.count ? HIGHLIGHTED : DEFAULT));
-    print_color("[<] Quit\n", (selected == tasks.count + 1 ? HIGHLIGHTED : DEFAULT));
+    wmove(win, term->rows-2, 0);
+    print_color("[+] New\n", (selected == tasks->count ? HIGHLIGHTED : DEFAULT));
+    print_color("[<] Quit\n", (selected == tasks->count + 1 ? HIGHLIGHTED : DEFAULT));
 }
 
 int main(void) {
-    state = VIEW;
+    Tasks tasks = {0};
+    Term term = {0};
+    State state = VIEW;
+    int selected = 0;
     initscr();
     raw();
     keypad(stdscr, true);
@@ -171,11 +173,11 @@ int main(void) {
     {
         clear();
         move(0,0);
-        getmaxyx(stdscr, rows, cols);
+        getmaxyx(stdscr, term.rows, term.cols);
         switch(state) {
             case VIEW:
                 curs_set(0);
-                list_tasks();
+                list_tasks(&tasks, selected, stdscr, &term);
                 int input = getch();
                 curs_set(1);
                 switch (input) {
@@ -191,10 +193,10 @@ int main(void) {
                         break;
                     case '\n':
                         if (selected < tasks.count) {
-                            cmd();
+                            cmd(&tasks, selected, &term);
                         }
                         else if (selected == tasks.count) {
-                            create_task();
+                            create_task(&tasks, &term);
                         }
                         else if (selected == tasks.count+1) {
                             state = QUIT;
