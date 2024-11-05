@@ -6,7 +6,7 @@
 #define UP_ARROW 259
 #define DOWN_ARROW 258
 #define BUFFER_MAX_SIZE 256
-#define MAX_TASKS 10
+#define MIN_ARRAY_SIZE 5
 
 typedef enum Color {
     DEFAULT,
@@ -18,15 +18,19 @@ typedef enum State {
     VIEW,
 } State;
 
-typedef struct Task
-{
+typedef struct Task {
     char* title;
     char* description;
     bool completed;
 } Task; 
 
-Task tasks[MAX_TASKS] = {0}; // Global Task array
-int task_count; // Number of tasks in the global array
+typedef struct Tasks {
+    Task* items;
+    int count;
+    int size;
+} Tasks;
+
+Tasks tasks = {0};
 State state; // Global state
 int selected = 0; // Selected task
 size_t rows, cols; // Size of the terminal
@@ -35,7 +39,7 @@ size_t rows, cols; // Size of the terminal
 void display(const char* message) {
     printw("%s", message);
     getch();
-} 
+}
 
 /* Prints a string to the screen as the provided color */
 void print_color(const char* string, Color color) {
@@ -46,23 +50,25 @@ void print_color(const char* string, Color color) {
 
 /* Adds a task to the global tasks array */
 void append_task(Task t) {
-    if (task_count == MAX_TASKS) {
-        printw("Error: Maximum task count reached");
-        return;
+    if (tasks.count == tasks.size) {
+        if (tasks.size == 0) {
+            tasks.size = MIN_ARRAY_SIZE;
+        } else {
+            tasks.size *= 2;
+        }
+        tasks.items = realloc(tasks.items, tasks.size * sizeof(Task));
     } 
-    tasks[task_count] = t;
-    task_count++;
+    tasks.items[tasks.count] = t;
+    tasks.count++;
 }
 
 /* Removes a task from the global tasks array */
 void remove_task(int i) {
-    Task* t = &tasks[i];
+    Task* t = &tasks.items[i];
     free(t->title);
     free(t->description);
-    for(int j = i; j < MAX_TASKS; j++) {
-        tasks[j] = tasks[j+1];
-    }
-    task_count--;
+    memmove(&tasks.items[i], &tasks.items[i+1], (tasks.count - i - 1) * sizeof(Task));
+    tasks.count--;
 }
 
 /* Creates a window to prompt for the title and description of a new task */
@@ -103,10 +109,10 @@ void cmd(void) {
     delwin(win);
 
     if (strcmp(buf, "complete") == 0) {
-        tasks[selected].completed = true;
+        tasks.items[selected].completed = true;
     }
     if (strcmp(buf, "uncomplete") == 0) {
-        tasks[selected].completed = false;
+        tasks.items[selected].completed = false;
     }
     if (strcmp(buf, "delete") == 0) {
         remove_task(selected);
@@ -116,8 +122,8 @@ void cmd(void) {
 /* Lists all the tasks, as well as a few options; highlights the selected option */
 void list_tasks(void) {
     char* title_buf = malloc(cols+2);
-    for(int i = 0; i < task_count; i++) {
-        Task* t = &tasks[i];
+    for(int i = 0; i < tasks.count; i++) {
+        Task* t = &tasks.items[i];
         Color title_color;
         if (selected == i) { 
             title_color = HIGHLIGHTED;
@@ -146,8 +152,8 @@ void list_tasks(void) {
     }
     free(title_buf);
     move(rows-2, 0);
-    print_color("[+] New\n", (selected == task_count ? HIGHLIGHTED : DEFAULT));
-    print_color("[<] Quit\n", (selected == task_count + 1 ? HIGHLIGHTED : DEFAULT));
+    print_color("[+] New\n", (selected == tasks.count ? HIGHLIGHTED : DEFAULT));
+    print_color("[<] Quit\n", (selected == tasks.count + 1 ? HIGHLIGHTED : DEFAULT));
 }
 
 int main(void) {
@@ -179,24 +185,24 @@ int main(void) {
                         }
                         break;
                     case DOWN_ARROW:
-                        if (selected < task_count + 1) {
+                        if (selected < tasks.count + 1) {
                             selected++;
                         }
                         break;
                     case '\n':
-                        if (selected < task_count) {
+                        if (selected < tasks.count) {
                             cmd();
                         }
-                        else if (selected == task_count) {
+                        else if (selected == tasks.count) {
                             create_task();
                         }
-                        else if (selected == task_count+1) {
+                        else if (selected == tasks.count+1) {
                             state = QUIT;
                         }
                         break;
                     case 'C':
-                        if (selected < task_count) {
-                            tasks[selected].completed = true;
+                        if (selected < tasks.count) {
+                            tasks.items[selected].completed = true;
                         }
                         break;
 
