@@ -47,7 +47,7 @@ void print_color(const char* string, Color color) {
     attroff(COLOR_PAIR(color));
 }
 
-/* Adds a task to the global tasks array */
+/* Append a task to a Tasks array */
 void append_task(Tasks *tasks, Task t) {
     if (tasks->count == tasks->size) {
         if (tasks->size == 0) {
@@ -61,16 +61,16 @@ void append_task(Tasks *tasks, Task t) {
     tasks->count++;
 }
 
-/* Removes a task from the global tasks array */
+/* Removes a task from a Tasks array by index */
 void remove_task(Tasks *tasks, int i) {
     Task* t = &tasks->items[i];
     free(t->title);
     free(t->description);
-    memmove(&tasks->items[i], &tasks->items[i+1], (tasks->count - i - 1) * sizeof(Task));
     tasks->count--;
+    memmove(&tasks->items[i], &tasks->items[i+1], (tasks->count - i) * sizeof(Task));
 }
 
-/* Creates a window to prompt for the title and description of a new task */
+/* Creates a window to prompt for the title and description of a new task and then adds it to a Tasks array */
 void create_task(Tasks *tasks, Term *term) {
     Task t = {0};
     WINDOW *win;
@@ -93,7 +93,7 @@ void create_task(Tasks *tasks, Term *term) {
     delwin(win);
 }
 
-/* Handles commands input by the user */
+/* Prompts the user to input a command, and then executes it on the selected Task */
 void cmd(Tasks *tasks, int selected, Term *term) {
     char buf[BUFFER_MAX_SIZE] = {0};
     WINDOW *win;
@@ -118,7 +118,8 @@ void cmd(Tasks *tasks, int selected, Term *term) {
     }
 }
 
-/* Lists all the tasks, as well as a few options; highlights the selected option */
+/* Lists all tasks into a given window, using the size of the terminal as reference;
+   Highlights the selected option */
 void list_tasks(Tasks *tasks, int selected, WINDOW *win, Term *term) {
     char* title_buf = malloc(term->cols+2);
     for(int i = 0; i < tasks->count; i++) {
