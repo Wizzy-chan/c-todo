@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ncurses.h>
-#include "src/task.h"
+#include "task.h"
 
 #define UP_ARROW 259
 #define DOWN_ARROW 258
