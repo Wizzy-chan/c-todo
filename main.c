@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ncurses.h>
+#include "src/task.h"
 
 #define UP_ARROW 259
 #define DOWN_ARROW 258
 #define BUFFER_MAX_SIZE 256
-#define MIN_ARRAY_SIZE 5
 
 typedef enum Color {
     DEFAULT,
@@ -17,18 +17,6 @@ typedef enum State {
     QUIT,
     VIEW,
 } State;
-
-typedef struct Task {
-    char* title;
-    char* description;
-    bool completed;
-} Task; 
-
-typedef struct Tasks {
-    Task* items;
-    int count;
-    int size;
-} Tasks;
 
 typedef struct Term {
     size_t rows, cols;
@@ -47,32 +35,8 @@ void print_color(const char* string, Color color) {
     attroff(COLOR_PAIR(color));
 }
 
-/* Append a task to a Tasks array */
-void append_task(Tasks *tasks, Task t) {
-    if (tasks->count == tasks->size) {
-        if (tasks->size == 0) {
-            tasks->size = MIN_ARRAY_SIZE;
-        } else {
-            tasks->size *= 2;
-        }
-        tasks->items = realloc(tasks->items, tasks->size * sizeof(Task));
-    } 
-    tasks->items[tasks->count] = t;
-    tasks->count++;
-}
-
-/* Removes a task from a Tasks array by index */
-void remove_task(Tasks *tasks, int i) {
-    Task* t = &tasks->items[i];
-    free(t->title);
-    free(t->description);
-    tasks->count--;
-    memmove(&tasks->items[i], &tasks->items[i+1], (tasks->count - i) * sizeof(Task));
-}
-
 /* Creates a window to prompt for the title and description of a new task and then adds it to a Tasks array */
-void create_task(Tasks *tasks, Term *term) {
-    Task t = {0};
+void cmd_task(Tasks *tasks, Term *term) {
     WINDOW *win;
     char title_buf[BUFFER_MAX_SIZE] = {0};
     char desc_buf[BUFFER_MAX_SIZE] = {0};
@@ -85,9 +49,7 @@ void create_task(Tasks *tasks, Term *term) {
         wgetnstr(win, desc_buf, BUFFER_MAX_SIZE-1);
     noecho();
 
-    t.title = strdup(title_buf);
-    t.description = strdup(desc_buf);
-    t.completed = false;
+    Task t = create_task(title_buf, desc_buf);
     append_task(tasks, t);
 
     delwin(win);
@@ -197,7 +159,7 @@ int main(void) {
                             cmd(&tasks, selected, &term);
                         }
                         else if (selected == tasks.count) {
-                            create_task(&tasks, &term);
+                            cmd_task(&tasks, &term);
                         }
                         else if (selected == tasks.count+1) {
                             state = QUIT;
