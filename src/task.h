@@ -1,19 +1,23 @@
+#ifndef TASK_H__
+#define TASK_H__
 #include <stdbool.h>
 
 typedef struct Task {
-    char* title;
-    char* description;
-    bool completed;
+  char *title;
+  char *description;
+  bool completed;
 } Task; 
 
 typedef struct Tasks {
-    Task* items;
-    int count;
-    int size;
+  Task **items;
+  int count;
+  int size;
 } Tasks;
 
 #define MIN_ARRAY_SIZE 5
+#endif // TASK_H__
 
-Task create_task(const char* title, const char* description);
-void append_task(Tasks *tasks, Task t);
-void remove_task(Tasks *tasks, int i);
+Task *task_create(const char *title, const char *description);
+void task_append(Tasks *tasks, Task *t);
+void task_remove(Tasks *tasks, int i);
+void task_free(Task *t);
