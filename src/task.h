@@ -21,3 +21,4 @@ Task *task_create(const char *title, const char *description);
 void task_append(Tasks *tasks, Task *t);
 void task_remove(Tasks *tasks, int i);
 void task_free(Task *t);
+void task_write_file(Tasks* tasks, const char *filepath);

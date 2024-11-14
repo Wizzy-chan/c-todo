@@ -36,7 +36,6 @@ int main(void) {
   cbreak();
   start_color();
   init_pair(HIGHLIGHTED, COLOR_BLACK, COLOR_WHITE);
-  
   refresh();
   noecho();
   while (state != QUIT)
@@ -90,5 +89,6 @@ int main(void) {
     refresh();
   }
   endwin();
+  task_write_file(&tasks, "tasks.txt");
   return 0;
 }

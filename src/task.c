@@ -1,6 +1,9 @@
 #include <string.h>
 #include <stdlib.h>
+#include <assert.h>
 #include "task.h"
+#include "sb.h"
+#include "file.h"
 
 /* Create a new task object with the given title and description, call task_free() when finished with the Task to free string pointers */
 Task *task_create(const char *title, const char *description) {
@@ -37,4 +40,20 @@ void task_free(Task *t) {
   free(t->title);
   free(t->description);
   free(t);
+}
+
+/* Write all of the tasks in a Tasks array into a file */
+void task_write_file(Tasks* tasks, const char *filepath) {
+  String_Builder sb = {0};
+  for (int i = 0; i < tasks->count; i++) {
+    sb_append_cstr(&sb, tasks->items[i]->title);
+    sb_append(&sb, ',');
+    sb_append_cstr(&sb, tasks->items[i]->description);
+    /* sb_append(&sb, ','); */
+    /* sb_append_cstr(&sb, itoa(tasks->items[i]->completed)); */
+    sb_append(&sb, '\n');
+  }
+  sb_append_null(&sb);
+  file_write_all(filepath, sb.string);
+  free(sb.string); // We are done with this String_Builder, but the dynamic array is not freed automatically
 }
