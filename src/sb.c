@@ -28,16 +28,38 @@ void sb_append_null(String_Builder *sb) {
   sb_append(sb, '\000');
 }
 
-String_View sb_get_sv(String_Builder *sb) {
+String_View sv_from_sb(String_Builder *sb) {
   String_View sv = {0};
   sv.string = sb->string;
   sv.count = sb->count;
   return sv;
 }
 
-String_View sb_get_cstr_sv(char *cstr) {
+String_View sv_from_str(char *cstr) {
   String_View sv = {0};
   sv.string = cstr;
   sv.count = strlen(cstr);
   return sv;
+}
+
+String_View sv_slice_left(String_View *view, char delim) {
+  size_t i = 0;
+  while (i < view->count && view->string[i] != delim) {
+    i++;
+  }
+  String_View res = {0};
+  res.string = view->string;
+  res.count = i;
+  view->count -= i+1;
+  view->string += i+1;
+  return res;
+}
+
+char *sv_to_str(String_View *view) {
+  char* res = malloc((view->count + 1) * sizeof(char));
+  for (size_t i = 0; i < view->count; i++) {
+    res[i] = view->string[i];
+  }
+  res[view->count] = '\000';
+  return res;
 }

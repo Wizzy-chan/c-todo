@@ -19,5 +19,7 @@ typedef struct {
 void sb_append(String_Builder *sb, char c);
 void sb_append_cstr(String_Builder *sb, char *cstr);
 void sb_append_null(String_Builder *sb);
-String_View sb_get_sv(String_Builder *sb);
-String_View sb_get_cstr_sv(char *cstr);
+String_View sv_from_sb(String_Builder *sb);
+String_View sv_from_str(char *cstr);
+String_View sv_slice_left(String_View *view, char delim);
+char *sv_to_str(String_View *view);
