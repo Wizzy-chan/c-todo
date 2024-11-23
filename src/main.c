@@ -28,6 +28,7 @@ void process_cmd(Tasks *tasks, int selected, const char *cmd) {
 
 int main(void) {
   Tasks tasks = {0};
+  task_read_file(&tasks, "tasks.txt");
   State state = VIEW;
   int selected = 0;
   initscr();
@@ -90,5 +91,9 @@ int main(void) {
   }
   endwin();
   task_write_file(&tasks, "tasks.txt");
+  for (int i = 0; i < tasks.count; i++) {
+    task_free(tasks.items[i]);
+  }
+  free(tasks.items);
   return 0;
 }
